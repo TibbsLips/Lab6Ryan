@@ -1,73 +1,54 @@
-//Initial VER
-module BCD_counter (clk, cout, cin, out, mode, load, load_en, a_clr);
-	input clk, load_en, a_clr;
-	input [3:0] load;
-	input [1:0] mode;
-	//00 = no change
-	//01 = up
-	//10 = down
-	//11 = no change
-	output reg [3:0] out;
-	output reg cout, cin;
+//VER 2
+module BCD_counter (CLK, OF, UF, DIR, EN, OUT, LOAD, LOAD_EN, CLR);
+	input CLK, DIR, EN, LOAD_EN, CLR;
+	input [3:0] LOAD;
+	output [3:0] OUT;
+	output OF, UF; //OVER/UNDERFLOW
 	
-	always @ (posedge clk, negedge a_clr) begin
-		if(load_en == 1) begin
-			out <= load;
-			cout <= 0;
-			cin <= 0;
+	//ORDER OF PRECEDENCE
+	//1. CLR 
+	//2. LOAD
+	//3. EN
+	//4. DIR 1 = up, 0 = down
+	
+	always @ (posedge CLK, negedge CLR) begin
+		
+		if(CLR == 1'b0) begin //priority 1
+			OUT <= 4'b0000;
+			OF <= 1'b0;
+			UF <= 1'b0;
 		end
-		else begin
-			case(mode)
-			2'b00: begin//no change
-				out = out;
-				cout <= 0;
-				cin <= 0;
-			end
-			2'b01: begin//increment
-				if((out >=0) && (out <8)) begin
-					out <= out + 1;
-					cout <= 0;
-					cin <= 0;
-				end
-				else if(out == 8) begin
-					out <= out + 1;
-					cout <= 1;
-					cin <= 0;
+		else if (LOAD_EN == 1'b1) begin //priority 2
+			OUT <= LOAD;
+			OF <= (LOAD == 4'b1001);
+			UF <= (LOAD == 4'b0000);
+		end
+		else if (EN == 1'b1) begin //priority 3
+			if(DIR == 1'b1) begin //up
+				if(OUT == 4'b1001) begin // 9 to 0
+					OUT <= 4'b0000;
+					UF <= 1'b1;
+					OF <= 1'b0;
 				end
 				else begin
-					out <= 0;
-					cout <= 0;
-					cin <= 0;
+					OUT <= OUT + 1;
+					UF <= 1'b0;
+					OF <= ((OUT + 1) == 9); // overflow if OUT +1 is 9
 				end
 			end
-			2'b10: begin//decrement
-				if((out <=9) && (out >1)) begin
-					out <= out - 1;
-					cout <= 0;
-					cin <= 0;
-				end
-				else if(out == 1) begin
-					out <= out - 1;
-					cout <= 0;
-					cin <= 1;
+			else begin//down
+				if(OUT == 4'b0000) begin // 0 to 9
+					OUT <= 4'b1001;
+					UF <= 1'b0;
+					OF <= 1'b1;
 				end
 				else begin
-					out <= 9;
-					cout <= 0;
-					cin <= 0;
+					OUT <= OUT - 1;
+					UF <= ((OUT - 1) == 0);
+					OF <= 1'b0; // overflow if OUT +1 is 9
 				end
 			end
-			2'b11: begin//no change
-				out = out;
-				cout <= 0;
-				cin <= 0;
-			end
-		end
-		if(a_clr == 0) begin
-			out <= 0;
-			cout <= 0;
-			cin <= 0;
 		end
 	end
-endmodule
 	
+endmodule
