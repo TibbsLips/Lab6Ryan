@@ -1,31 +1,30 @@
-module BCD_4counter (clk, cout, cin, out, mode, load, load_en, a_clr);
-	input clk, load_en, a_clr;
-	input [1:0] mode;
-	//00 = clear (synchronous)
-	//01 = up
-	//10 = down
-	//11 = no change
-	input [15:0] load;
+module BCD_4counter (CLK, OF, UF, DIR, EN, OUT, LOAD, LOAD_EN, CLR);
+	input CLK, DIR, EN, LOAD_EN, CLR;
+	input [15:0] LOAD;
+	output [15:0] OUT;
+	output OF, UF; //OVER/UNDERFLOW
 	
-	output reg [15:0] out;
-	output reg cout, cin;
+	//ORDER OF PRECEDENCE
+	//1. CLR 
+	//2. LOAD
+	//3. EN
+	//4. DIR 1 = up, 0 = down
 	
-	wire [3:0] in0, in1, in2, in3;
+	reg OF0, OF1, OF2, OF3;
+	reg UF0, UF1, UF2, UF3;
+	reg EN0, EN1, EN2, EN3;
 	
-	
-	always @ (posedge clk, negedge a_clr) begin
-		if(load_en == 1) begin
-			in3 <= load[15:12];
-			in2 <= load[11:8];
-			in1 <= load[7:4];
-			in0 <= load[3:0];
-		end
-		
-	
+	assign EN0 = EN;
+	assign EN1 = (EN & OF0) ^ (EN & UF0);
+	assign EN2 = (EN & OF1) ^ (EN & UF1);
+	assign EN3 = (EN & OF2) ^ (EN & UF2);
+	assign OF = OF3;
+	assign UF = UF3;
 	
 	
-	
-	
-	end
+	BCD_counter bcd0(CLK, OF0, UF0, DIR, EN0, OUT[3:0], LOAD[3:0], LOAD_EN, CLR);
+	BCD_counter bcd1(CLK, OF1, UF1, DIR, EN1, OUT[7:4], LOAD[7:4], LOAD_EN, CLR);
+	BCD_counter bcd2(CLK, OF2, UF2, DIR, EN2, OUT[11:8], LOAD[11:8], LOAD_EN, CLR);
+	BCD_counter bcd3(CLK, OF3, UF3, DIR, EN3, OUT[15:12], LOAD[15:12], LOAD_EN, CLR);
 
 endmodule
